@@ -1,10 +1,20 @@
 import React from 'react';
+import { RouterProvider } from 'react-router-dom';
+import { router } from './router';
+import { ErrorBoundary } from './components/ErrorBoundary';
+import { startMSW } from './api/msw/browser';
+import './app.css';
+
+// Initialize MSW for API mocking
+if (import.meta.env.VITE_USE_MOCKS === 'true') {
+  startMSW().catch(console.error);
+}
 
 function App() {
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-      <p>Start prompting (or editing) to see magic happen :)</p>
-    </div>
+    <ErrorBoundary>
+      <RouterProvider router={router} />
+    </ErrorBoundary>
   );
 }
 
