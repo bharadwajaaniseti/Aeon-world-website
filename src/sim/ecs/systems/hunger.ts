@@ -1,5 +1,6 @@
 import type { ECSWorld } from '../world';
 import { rng } from '../../../utils/rng';
+import { createHerbivore, createPredator, createTribal } from '../components';
 
 export function hungerSystem(world: ECSWorld, deltaTime: number): void {
   // Process hunger for all entities with hunger component
@@ -60,15 +61,12 @@ function handleStarvationDeath(world: ECSWorld, entityId: string): void {
     let template: any = {};
     switch (species.kind) {
       case 'HERBIVORE':
-        const { createHerbivore } = require('../components');
         template = createHerbivore(newX, newY);
         break;
       case 'PREDATOR':
-        const { createPredator } = require('../components');
         template = createPredator(newX, newY);
         break;
       case 'TRIBAL':
-        const { createTribal } = require('../components');
         template = createTribal(newX, newY);
         break;
     }

@@ -3,7 +3,7 @@ import { throttle } from '../../utils/guards';
 
 export function setupCameraControls(camera: ArcRotateCamera, canvas: HTMLCanvasElement): void {
   // Attach camera controls to canvas
-  camera.attachControls(canvas);
+  camera.attachControl(canvas, true);
 
   // Configure camera behavior
   camera.setTarget(Vector3.Zero());

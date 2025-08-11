@@ -1,5 +1,6 @@
 import type { ECSWorld } from '../world';
 import { rng } from '../../../utils/rng';
+import { createHerbivore, createPredator, createTribal } from '../components';
 
 export function agingSystem(world: ECSWorld, deltaTime: number): void {
   // Process aging for all entities with age component
@@ -76,15 +77,12 @@ function handleNaturalDeath(world: ECSWorld, entityId: string): void {
     let template: any = {};
     switch (species.kind) {
       case 'HERBIVORE':
-        const { createHerbivore } = require('../components');
         template = createHerbivore(newX, newY);
         break;
       case 'PREDATOR':
-        const { createPredator } = require('../components');
         template = createPredator(newX, newY);
         break;
       case 'TRIBAL':
-        const { createTribal } = require('../components');
         template = createTribal(newX, newY);
         break;
     }
@@ -189,15 +187,12 @@ function createOffspring(world: ECSWorld, parentPosition: any, parentSpecies: an
   let template: any = {};
   switch (parentSpecies.kind) {
     case 'HERBIVORE':
-      const { createHerbivore } = require('../components');
       template = createHerbivore(newX, newY);
       break;
     case 'PREDATOR':
-      const { createPredator } = require('../components');
       template = createPredator(newX, newY);
       break;
     case 'TRIBAL':
-      const { createTribal } = require('../components');
       template = createTribal(newX, newY);
       break;
   }
