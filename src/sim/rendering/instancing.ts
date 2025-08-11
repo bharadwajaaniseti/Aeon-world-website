@@ -217,7 +217,7 @@ export function updateLOD(camera: any): void {
   // This would switch between different levels of detail based on distance from camera
   // - Close entities: full geometry
   // - Medium distance: simplified geometry  
-  - Far distance: billboards/impostors
+  // - Far distance: billboards/impostors
 }
 
 // Cleanup function
