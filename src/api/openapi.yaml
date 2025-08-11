@@ -1,0 +1,763 @@
+openapi: 3.1.0
+info:
+  title: AeonWorld API
+  description: Backend API for the AeonWorld persistent simulation platform
+  version: 1.0.0
+  contact:
+    name: AeonWorld Team
+    url: https://aeonworld.example
+
+servers:
+  - url: https://api.aeonworld.example/v1
+    description: Production API
+  - url: http://localhost:8080/v1
+    description: Development API
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              example: "VALIDATION_ERROR"
+            message:
+              type: string
+              example: "Invalid input parameters"
+
+    User:
+      type: object
+      required: [id, username, email, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        username:
+          type: string
+        email:
+          type: string
+          format: email
+        createdAt:
+          type: string
+          format: date-time
+
+    UserProfile:
+      allOf:
+        - $ref: '#/components/schemas/User'
+        - type: object
+          properties:
+            displayName:
+              type: string
+            bio:
+              type: string
+            avatar:
+              type: string
+              format: uri
+
+    Species:
+      type: string
+      enum: [HERBIVORE, PREDATOR, TRIBAL]
+
+    WorldSummary:
+      type: object
+      required: [id, name, status, population, dayCount, createdAt]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        status:
+          type: string
+          enum: [ACTIVE, PAUSED, ARCHIVED]
+        population:
+          type: integer
+          minimum: 0
+        dayCount:
+          type: integer
+          minimum: 0
+        createdAt:
+          type: string
+          format: date-time
+
+    WorldDetail:
+      allOf:
+        - $ref: '#/components/schemas/WorldSummary'
+        - type: object
+          properties:
+            description:
+              type: string
+            seed:
+              type: integer
+            timeScale:
+              type: number
+              minimum: 0.1
+              maximum: 10.0
+            settings:
+              type: object
+              properties:
+                maxPopulation:
+                  type: integer
+                hungerRate:
+                  type: number
+                reproductionRate:
+                  type: number
+
+    WorldMetrics:
+      type: object
+      required: [timestamp, population, births, deaths, discoveries]
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        population:
+          type: object
+          properties:
+            total:
+              type: integer
+            bySpecies:
+              type: object
+              additionalProperties:
+                type: integer
+        births:
+          type: integer
+        deaths:
+          type: integer
+        discoveries:
+          type: integer
+
+    Entity:
+      type: object
+      required: [id, species, position, age, hunger, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        species:
+          $ref: '#/components/schemas/Species'
+        position:
+          type: object
+          required: [x, y]
+          properties:
+            x:
+              type: number
+            y:
+              type: number
+        altitude:
+          type: number
+        age:
+          type: number
+          minimum: 0
+        hunger:
+          type: number
+          minimum: 0
+          maximum: 1
+        villageId:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+
+    EntityDetail:
+      allOf:
+        - $ref: '#/components/schemas/Entity'
+        - type: object
+          properties:
+            behavior:
+              type: string
+            health:
+              type: number
+              minimum: 0
+              maximum: 1
+            experience:
+              type: integer
+            traits:
+              type: array
+              items:
+                type: string
+
+    EventKind:
+      type: string
+      enum: [BIRTH, DEATH, DISCOVERY, MIGRATION, INTERACTION]
+
+    Event:
+      type: object
+      required: [id, kind, timestamp, description]
+      properties:
+        id:
+          type: string
+          format: uuid
+        kind:
+          $ref: '#/components/schemas/EventKind'
+        timestamp:
+          type: string
+          format: date-time
+        description:
+          type: string
+        entityId:
+          type: string
+          format: uuid
+          nullable: true
+        metadata:
+          type: object
+
+    SnapshotSummary:
+      type: object
+      required: [name, timestamp, population, size]
+      properties:
+        name:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        population:
+          type: integer
+        size:
+          type: integer
+          description: Snapshot size in bytes
+
+    SnapshotDetail:
+      allOf:
+        - $ref: '#/components/schemas/SnapshotSummary'
+        - type: object
+          properties:
+            description:
+              type: string
+            worldState:
+              type: object
+              description: Compressed world state data
+
+    NudgeRequest:
+      type: object
+      required: [action]
+      properties:
+        action:
+          type: string
+          enum: [FEED, RELOCATE, INSPIRE]
+        parameters:
+          type: object
+
+    NudgeResult:
+      type: object
+      required: [outcome, message]
+      properties:
+        outcome:
+          type: string
+          enum: [SUCCESS, FAILED, IGNORED]
+        message:
+          type: string
+        effects:
+          type: array
+          items:
+            type: string
+
+    Adoption:
+      type: object
+      required: [id, entityId, userId, adoptedAt, status]
+      properties:
+        id:
+          type: string
+          format: uuid
+        entityId:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        adoptedAt:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [ACTIVE, RELEASED, DECEASED]
+        nickname:
+          type: string
+
+paths:
+  # Auth endpoints
+  /auth/login:
+    post:
+      summary: Authenticate user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [accessToken, user]
+                properties:
+                  accessToken:
+                    type: string
+                  user:
+                    $ref: '#/components/schemas/User'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/logout:
+    post:
+      summary: Logout user
+      security:
+        - BearerAuth: []
+      responses:
+        '204':
+          description: Logout successful
+
+  /auth/me:
+    get:
+      summary: Get current user
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+
+  # Profile endpoints
+  /profiles/{id}:
+    get:
+      summary: Get user profile
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    patch:
+      summary: Update user profile
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                displayName:
+                  type: string
+                bio:
+                  type: string
+      responses:
+        '200':
+          description: Profile updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+
+  # World endpoints
+  /worlds:
+    get:
+      summary: List worlds
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [ACTIVE, PAUSED, ARCHIVED]
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: List of worlds
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/WorldSummary'
+
+    post:
+      summary: Create world (admin only)
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+                seed:
+                  type: integer
+      responses:
+        '201':
+          description: World created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorldSummary'
+
+  /worlds/{id}:
+    get:
+      summary: Get world details
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: World details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorldDetail'
+
+  /worlds/{id}/metrics:
+    get:
+      summary: Get world metrics
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: World metrics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorldMetrics'
+
+  # Entity endpoints
+  /worlds/{worldId}/entities:
+    get:
+      summary: List entities with spatial/pagination filtering
+      parameters:
+        - name: worldId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: bbox
+          in: query
+          description: Bounding box as "minX,minY,maxX,maxY"
+          schema:
+            type: string
+        - name: species
+          in: query
+          schema:
+            $ref: '#/components/schemas/Species'
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 1000
+            default: 100
+      responses:
+        '200':
+          description: List of entities
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [entities, total, hasMore]
+                properties:
+                  entities:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Entity'
+                  total:
+                    type: integer
+                  hasMore:
+                    type: boolean
+
+  /worlds/{worldId}/entities/{entityId}:
+    get:
+      summary: Get entity details
+      parameters:
+        - name: worldId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: entityId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Entity details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EntityDetail'
+
+  /worlds/{worldId}/entities/{entityId}/nudge:
+    post:
+      summary: Nudge entity behavior (premium feature)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: worldId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: entityId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NudgeRequest'
+      responses:
+        '200':
+          description: Nudge result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NudgeResult'
+
+  # Event endpoints
+  /worlds/{worldId}/events:
+    get:
+      summary: Get world events
+      parameters:
+        - name: worldId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: since
+          in: query
+          description: Cursor for pagination
+          schema:
+            type: string
+        - name: kind
+          in: query
+          schema:
+            $ref: '#/components/schemas/EventKind'
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+      responses:
+        '200':
+          description: List of events
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [events, nextCursor]
+                properties:
+                  events:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Event'
+                  nextCursor:
+                    type: string
+                    nullable: true
+
+  # Snapshot endpoints
+  /worlds/{worldId}/snapshots:
+    get:
+      summary: List snapshots
+      parameters:
+        - name: worldId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 20
+      responses:
+        '200':
+          description: List of snapshots
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SnapshotSummary'
+
+    post:
+      summary: Create snapshot
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: worldId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+      responses:
+        '201':
+          description: Snapshot created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SnapshotSummary'
+
+  /worlds/{worldId}/snapshots/{name}:
+    get:
+      summary: Get snapshot details
+      parameters:
+        - name: worldId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Snapshot details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SnapshotDetail'
+
+  # Commerce endpoints (future)
+  /purchase/adopt:
+    post:
+      summary: Adopt an entity
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [entityId]
+              properties:
+                entityId:
+                  type: string
+                  format: uuid
+                nickname:
+                  type: string
+      responses:
+        '201':
+          description: Adoption successful
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [adoptionId, entityId]
+                properties:
+                  adoptionId:
+                    type: string
+                    format: uuid
+                  entityId:
+                    type: string
+                    format: uuid
+
+  /adoptions/me:
+    get:
+      summary: Get my adoptions
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: List of adoptions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Adoption'

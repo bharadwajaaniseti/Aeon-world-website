@@ -1,0 +1,46 @@
+/* Global app styles */
+.simulation-canvas {
+  cursor: grab;
+}
+
+.simulation-canvas:active {
+  cursor: grabbing;
+}
+
+.ticker-item {
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.selected-entity {
+  box-shadow: 0 0 0 2px theme('colors.emerald.500');
+  animation: pulse-selection 2s infinite;
+}
+
+@keyframes pulse-selection {
+  0%, 100% {
+    box-shadow: 0 0 0 2px theme('colors.emerald.500');
+  }
+  50% {
+    box-shadow: 0 0 0 4px theme('colors.emerald.300');
+  }
+}
+
+.loading-spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
