@@ -68,7 +68,7 @@ export const Sim: React.FC = () => {
   }
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden bg-gray-900">
+    <div className="h-screen flex flex-col overflow-auto bg-gray-900">
       {/* Top Bar */}
       <TopBar />
 

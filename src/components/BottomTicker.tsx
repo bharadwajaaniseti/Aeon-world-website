@@ -92,7 +92,7 @@ export const BottomTicker: React.FC = () => {
       <div className="flex-1 p-3">
         <div
           ref={scrollRef}
-          className="h-full overflow-x-auto overflow-y-hidden"
+          className="h-full overflow-auto"
           onMouseEnter={() => setIsPaused(true)}
           onMouseLeave={() => setIsPaused(false)}
         >
